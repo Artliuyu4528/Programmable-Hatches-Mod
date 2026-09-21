@@ -181,7 +181,16 @@ public class ItemProgrammingCircuit extends Item {
             tag.setInteger("id", Item.itemRegistry.getIDForObject(Item.itemRegistry.getObject(s)));
         }
 
-        return ItemStack.loadItemStackFromNBT(tag);
+        ItemStack target = ItemStack.loadItemStackFromNBT(tag);
+        // Issue #335: patterns generated before the fix carry a target with Damage 32767
+        // (OreDictionary.WILDCARD_VALUE copied out of a GT recipe). Never hand that out as an item: it
+        // crashes icon lookups of whatever the target is when rendered, and as a virtual-slot item it
+        // would match EVERY damage value of a recipe input, since GTUtility.areStacksEqual treats a
+        // wildcard on either side as equal. Read it as damage 0 instead.
+        if (target != null && target.getItemDamage() == net.minecraftforge.oredict.OreDictionary.WILDCARD_VALUE) {
+            target.setItemDamage(0);
+        }
+        return target;
 
     }
 

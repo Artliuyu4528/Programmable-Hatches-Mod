@@ -71,7 +71,14 @@ public class ItemProgrammingToolkit extends Item implements IItemWithModularUI, 
 
     @SideOnly(Side.CLIENT)
     public IIcon getIconFromDamage(int p_77617_1_) {
-        return this.icons[p_77617_1_];
+        // Issue #335. The damage is not guaranteed to be a real mode: PH's own GT recipes list the
+        // toolkit as a catalyst with OreDictionary.WILDCARD_VALUE (32767, "any mode"), and anything that
+        // turns such a recipe-side stack into a concrete item - the Recipe Filter CRIB used to - ends up
+        // rendering it. Only modes 0..2 have an icon (the rest of the 16 slots are null), so fall back to
+        // icon 0 for an out-of-range value AND for an unregistered slot. Same guard GT uses in
+        // ItemIntegratedCircuit#getIconFromDamage.
+        IIcon icon = p_77617_1_ >= 0 && p_77617_1_ < this.icons.length ? this.icons[p_77617_1_] : null;
+        return icon != null ? icon : this.icons[0];
     }
 
     {

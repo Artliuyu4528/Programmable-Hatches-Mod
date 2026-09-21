@@ -94,6 +94,7 @@ import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.oredict.OreDictionary;
 import reobf.proghatches.gt.metatileentity.PatternDualInputHatch.Inst;
 import reobf.proghatches.gt.metatileentity.util.IMultiplePatternPushable;
 import reobf.proghatches.gt.metatileentity.util.ISpecialOptimize;
@@ -367,6 +368,27 @@ private void postChangeInner(StorageChannel c,IAEItemStack is){
         return Collections.emptyList();
     }
     
+    /**
+     * Issue #335: turns a recipe-side stack into something that can exist as an item.
+     * <p>
+     * A GT recipe input may carry OreDictionary.WILDCARD_VALUE (32767, "any damage"); machine recipes
+     * really support that - the lookup probes (item, 32767) for every concrete stack offered, and GT
+     * itself uses it (any-charge lapotron crystals, any-heat coolant cells), as do PH's
+     * toolkit-as-catalyst recipes. But a wildcard is a matching pattern, not an item. Written verbatim
+     * into a generated pattern it asks AE for an item no network can hold, and rendering it indexes
+     * the item's icon table with 32767 - that was the crash: a programming circuit wrapping
+     * toolkit@32767 drawn by GuiCraftConfirm. Pin it to damage 0, the fallback NEI uses when it expands
+     * a wildcard; getSubItems() would give a nicer pick but is client-only and this runs on the server.
+     * Applies to consumed AND non-consumed inputs. Returns a copy when it changes anything: the
+     * argument is the recipe's own stack and must never be mutated.
+     */
+    private static ItemStack concrete(ItemStack recipeSide){
+    	if(recipeSide.getItemDamage()!=OreDictionary.WILDCARD_VALUE)return recipeSide;
+    	ItemStack copy=recipeSide.copy();
+    	copy.setItemDamage(0);
+    	return copy;
+    }
+
     private static AEItemStack zeroToCircuit(AEItemStack in){
     	if(in.getStackSize()<=0)return AEItemStack.create(ItemProgrammingCircuit.wrap(in.getItemStack()));
     	
@@ -399,7 +421,7 @@ private void postChangeInner(StorageChannel c,IAEItemStack is){
         List<IAEStack<?>> inputsList = new ArrayList<>();
         for (ItemStack input : xx.mInputs) {
             if (input != null) {
-                inputsList.add(RecipeFilterCRIB.zeroToCircuit(AEItemStack.create(input)));
+                inputsList.add(RecipeFilterCRIB.zeroToCircuit(AEItemStack.create(concrete(input))));
             }
         }
         for (FluidStack fluidInput : xx.mFluidInputs) {

@@ -61,7 +61,9 @@ public class ItemSmartArm extends Item {
     @Override
     public IIcon getIconFromDamage(int i) {
 
-        return gt[i];
+        // same guard as ItemProgrammingToolkit (issue #335): a wildcard or otherwise bogus damage must not index past the table
+        IIcon icon = i >= 0 && i < gt.length ? gt[i] : null;
+        return icon != null ? icon : gt[0];
     }
 
     @SideOnly(Side.CLIENT)

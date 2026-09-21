@@ -102,7 +102,9 @@ public class ItemDedicatedCover extends Item {
     @Override
     public IIcon getIconFromDamage(int p_77617_1_) {
 
-        return icons[p_77617_1_];
+        // same guard as ItemProgrammingToolkit (issue #335): a wildcard or otherwise bogus damage must not index past the table
+        IIcon icon = p_77617_1_ >= 0 && p_77617_1_ < icons.length ? icons[p_77617_1_] : null;
+        return icon != null ? icon : icons[0];
     }
 
 }
